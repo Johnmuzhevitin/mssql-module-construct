@@ -13,6 +13,7 @@ with st.sidebar:
     database = st.text_input('Database')
     username = st.text_input('User')
     password = st.text_input('Password', type='password')
+    use_trusted = st.checkbox('Trusted connection')
     connect_btn = st.button('Connect')
 
 if 'conn' not in st.session_state:
@@ -20,10 +21,13 @@ if 'conn' not in st.session_state:
 
 if connect_btn:
     try:
-        conn_str = (
-            f'DRIVER={{ODBC Driver 17 for SQL Server}};'
-            f'SERVER={server};DATABASE={database};UID={username};PWD={password}'
-        )
+        base = f'DRIVER={{ODBC Driver 17 for SQL Server}};SERVER={server};DATABASE={database};'
+        if use_trusted:
+            conn_str = base + 'Trusted_Connection=yes;'
+            if username:
+                conn_str += f'UID={username};'
+        else:
+            conn_str = base + f'UID={username};PWD={password}'
         st.session_state.conn = pyodbc.connect(conn_str)
         st.success('Connected successfully!')
     except Exception as e:
