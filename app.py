@@ -43,6 +43,10 @@ def get_columns(connection, table):
     cursor.execute(query)
     return [row[0] for row in cursor.fetchall()]
 
+def get_sample_data(connection, table, limit=5):
+    query = f"SELECT TOP {limit} * FROM [{table}]"
+    return pd.read_sql_query(query, connection)
+
 def get_foreign_key_map(connection):
     query = """
         SELECT
@@ -105,8 +109,14 @@ if conn:
     selected_tables = st.multiselect('Tables', tables)
     selected_columns = {}
     for table in selected_tables:
+        st.subheader(f'Sample from {table}')
+        try:
+            sample_df = get_sample_data(conn, table)
+            st.dataframe(sample_df)
+        except Exception as e:
+            st.error(f'Failed to load sample data: {e}')
         cols = get_columns(conn, table)
-        selected = st.multiselect(f'Columns from {table}', cols)
+        selected = st.multiselect(f'Columns from {table}', cols, key=f'cols_{table}')
         selected_columns[table] = selected
 
     if st.button('Generate SQL'):
