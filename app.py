@@ -64,6 +64,16 @@ if "query_df" not in st.session_state:
     st.session_state.query_df = None
 if "last_query" not in st.session_state:
     st.session_state.last_query = ""
+if "profile" not in st.session_state:
+    st.session_state.profile = {
+        "name": "Иван Иванов",
+        "status": "подтверждён",
+        "phone": "+7 900 000-00-00",
+        "email": "user@example.com",
+        "avatar": None,
+    }
+if "confirm_delete" not in st.session_state:
+    st.session_state.confirm_delete = False
 
 
 def make_connection(params):
@@ -105,9 +115,72 @@ def run_query(query: str):
     return pd.read_sql_query(query, conn)
 
 
+def render_profile_page():
+    prof = st.session_state.profile
+    st.header("Профиль")
+    with st.container():
+        col1, col2 = st.columns([1, 3])
+        with col1:
+            if prof["avatar"]:
+                st.image(prof["avatar"], width=96)
+            else:
+                st.image("https://via.placeholder.com/96", width=96)
+            avatar_file = st.file_uploader(
+                "Загрузить фото", type=["png", "jpg", "jpeg"], label_visibility="collapsed"
+            )
+            if avatar_file:
+                if avatar_file.size <= 5 * 1024 * 1024:
+                    prof["avatar"] = avatar_file.read()
+                    st.success("Аватар обновлен")
+                else:
+                    st.error("Файл должен быть меньше 5 МБ")
+        with col2:
+            st.subheader(prof["name"])
+            st.write(f"Статус: {prof['status']}")
+            with st.form("phone_form", clear_on_submit=True):
+                phone = st.text_input("Телефон", prof["phone"])
+                if st.form_submit_button("Изменить"):
+                    prof["phone"] = phone
+                    st.success("Телефон обновлен")
+            with st.form("email_form", clear_on_submit=True):
+                email = st.text_input("Email", prof["email"])
+                if st.form_submit_button("Изменить"):
+                    if "@" in email:
+                        prof["email"] = email
+                        st.success("Email обновлен")
+                    else:
+                        st.error("Некорректный email")
+
+    st.subheader("Безопасность")
+    with st.form("pwd_form", clear_on_submit=True):
+        new_pass = st.text_input("Новый пароль", type="password")
+        strength = min(len(new_pass) / 12, 1)
+        st.progress(strength)
+        confirm = st.text_input("Повторите пароль", type="password")
+        if st.form_submit_button("Сменить пароль"):
+            if new_pass and new_pass == confirm:
+                st.success("Пароль обновлен")
+            else:
+                st.error("Пароли не совпадают")
+    if st.button("Рекомендации по безопасности"):
+        st.info("Используйте сложные пароли и не сообщайте их другим")
+
+    st.subheader("Удаление аккаунта")
+    if st.session_state.confirm_delete:
+        if st.button("Подтвердить удаление"):
+            st.warning("Аккаунт удален")
+            st.session_state.confirm_delete = False
+    else:
+        if st.button("Удалить аккаунт"):
+            st.session_state.confirm_delete = True
+            st.warning("Нажмите кнопку еще раз для подтверждения")
+
+
 if conn:
     mode = st.radio(
-        "Режим", ["Конструктор", "Произвольный SQL", "Личный кабинет"], horizontal=True
+        "Режим",
+        ["Конструктор", "Произвольный SQL", "Сохраненные запросы", "Профиль"],
+        horizontal=True,
     )
 
     if mode == "Произвольный SQL":
@@ -120,7 +193,7 @@ if conn:
                 st.dataframe(df)
             except Exception as e:
                 st.error(f"Ошибка выполнения: {e}")
-    elif mode == "Личный кабинет":
+    elif mode == "Сохраненные запросы":
         saved_queries = load_saved_queries()
         if saved_queries:
             query_name = st.selectbox("Сохраненные запросы", list(saved_queries.keys()))
@@ -135,6 +208,8 @@ if conn:
                     st.error(f"Ошибка выполнения: {e}")
         else:
             st.info("Нет сохраненных запросов")
+    elif mode == "Профиль":
+        render_profile_page()
     else:
         tables = get_tables(conn)
         selected_tables = st.multiselect("Таблицы", tables)
