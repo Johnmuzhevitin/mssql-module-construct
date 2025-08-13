@@ -21,12 +21,15 @@ def build_query(selected_tables, selected_columns, joins):
         if join:
             jt = join.get('type', 'LEFT').upper()
             lt = join.get('left_table')
-            lc = join.get('left_column')
-            rc = join.get('right_column')
-            query += (
-                f" {jt} JOIN {_format_table(table)} ON "
-                f"{_format_column(lt, lc)} = {_format_column(table, rc)}"
-            )
+            conditions = join.get('conditions', [])
+            if conditions:
+                cond_str = " AND ".join(
+                    f"{_format_column(lt, c['left_column'])} = {_format_column(table, c['right_column'])}"
+                    for c in conditions
+                )
+                query += f" {jt} JOIN {_format_table(table)} ON {cond_str}"
+            else:
+                query += f" {jt} JOIN {_format_table(table)}"
         else:
             query += f" CROSS JOIN {_format_table(table)}"
     return query
