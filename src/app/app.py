@@ -11,6 +11,7 @@ from ..core.app import AppContext
 from ..core.config import load_config
 from ..core.events import EventBus
 from ..core.logger import setup_logging
+from ..core.registry import autodiscover_modules
 from ..ui.main_window import MainWindow
 
 
@@ -24,6 +25,7 @@ def main() -> None:
     context.set("event_bus", event_bus)
 
     config = load_config()
+    autodiscover_modules()
     logging.info("Приложение запущено")
 
     app = QApplication(sys.argv)
