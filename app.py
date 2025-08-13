@@ -55,6 +55,17 @@ with st.sidebar:
     connect_last_btn = False
     if last_conn:
         connect_last_btn = st.button("Подключиться к последнему")
+    if st.session_state.conn:
+        st.markdown("---")
+        st.subheader("Навигация")
+        if st.button("Конструктор"):
+            st.session_state.mode = "Конструктор"
+        if st.button("Произвольный SQL"):
+            st.session_state.mode = "Произвольный SQL"
+        if st.button("Сохраненные запросы"):
+            st.session_state.mode = "Сохраненные запросы"
+        if st.button("Профиль"):
+            st.session_state.mode = "Профиль"
 
 if "conn" not in st.session_state:
     st.session_state.conn = None
@@ -74,6 +85,8 @@ if "profile" not in st.session_state:
     }
 if "confirm_delete" not in st.session_state:
     st.session_state.confirm_delete = False
+if "mode" not in st.session_state:
+    st.session_state.mode = "Конструктор"
 
 
 def make_connection(params):
@@ -177,11 +190,15 @@ def render_profile_page():
 
 
 if conn:
-    mode = st.radio(
-        "Режим",
-        ["Конструктор", "Произвольный SQL", "Сохраненные запросы", "Профиль"],
-        horizontal=True,
-    )
+    if st.session_state.mode in ["Конструктор", "Произвольный SQL"]:
+        mode_radio = st.radio(
+            "Режим",
+            ["Конструктор", "Произвольный SQL"],
+            horizontal=True,
+            index=0 if st.session_state.mode == "Конструктор" else 1,
+        )
+        st.session_state.mode = mode_radio
+    mode = st.session_state.mode
 
     if mode == "Произвольный SQL":
         custom_sql = st.text_area("SQL", height=200)
