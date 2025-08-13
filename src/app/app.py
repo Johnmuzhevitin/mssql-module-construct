@@ -9,8 +9,8 @@ from pathlib import Path
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QApplication
 
-from core.config import load_config
-from ui.main_window import MainWindow
+from ..core.config import load_config
+from ..ui.main_window import MainWindow
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
