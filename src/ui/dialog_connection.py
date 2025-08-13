@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (
     QSpinBox,
 )
 
-from modules.datasource import ConnectionManager, ConnectionProfile
+from ..modules.datasource import ConnectionManager, ConnectionProfile
 
 
 class ConnectionDialog(QDialog):

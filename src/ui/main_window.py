@@ -17,7 +17,7 @@ from PySide6.QtWidgets import (
 
 from qt_material import apply_stylesheet
 
-from modules.datasource import ConnectionManager
+from ..modules.datasource import ConnectionManager
 from .dialog_connection import ConnectionDialog
 
 
