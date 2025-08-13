@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (
     QListWidget,
     QMainWindow,
     QMenuBar,
+    QMessageBox,
     QSplitter,
     QTextEdit,
     QWidget,
@@ -67,6 +68,7 @@ class MainWindow(QMainWindow):
 
         self.new_action = QAction("Новый", self)
         self.new_action.setShortcut("Ctrl+N")
+        self.new_action.triggered.connect(self._new_project)
 
         self.save_action = QAction("Сохранить", self)
         self.save_action.setShortcut("Ctrl+S")
@@ -101,6 +103,32 @@ class MainWindow(QMainWindow):
         view_menu.addAction(self.run_action)
         view_menu.addSeparator()
         view_menu.addAction(self.dark_theme_action)
+
+    # ------------------------------------------------------------------
+    # Project management
+    # ------------------------------------------------------------------
+    def _new_project(self) -> None:
+        """Initialize a new project by clearing UI elements."""
+
+        reply = QMessageBox.question(
+            self,
+            "Новый проект",
+            "Очистить текущий проект?",
+            QMessageBox.Yes | QMessageBox.No,
+        )
+        if reply != QMessageBox.Yes:
+            return
+
+        self.nav_list.clear()
+        self.nav_list.addItem("Навигация")
+
+        self.canvas.setText("Canvas")
+
+        self.props_panel.clear()
+        self.props_panel.setPlainText("Свойства")
+
+        self.preview.clear()
+        self.preview.setPlainText("Превью")
 
     # ------------------------------------------------------------------
     # Theme management
