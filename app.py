@@ -55,7 +55,7 @@ with st.sidebar:
     connect_last_btn = False
     if last_conn:
         connect_last_btn = st.button("Подключиться к последнему")
-    if st.session_state.conn:
+    if "conn" in st.session_state and st.session_state.conn:
         st.markdown("---")
         st.subheader("Навигация")
         if st.button("Конструктор"):
