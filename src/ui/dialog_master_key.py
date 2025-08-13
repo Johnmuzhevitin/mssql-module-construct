@@ -12,7 +12,9 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
-from core.crypto import CryptoManager
+# ``ui`` is a sibling of ``core`` inside ``src``; use a relative import so the
+# application can be executed without adjusting ``PYTHONPATH``.
+from ..core.crypto import CryptoManager
 
 
 class MasterKeyDialog(QDialog):

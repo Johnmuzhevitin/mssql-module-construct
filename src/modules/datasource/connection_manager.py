@@ -6,8 +6,18 @@ from typing import List, Optional, Tuple
 import pyodbc
 from pydantic import BaseModel, field_validator
 
-from core.crypto import CryptoManager
-from core.storage import get_connection
+# Import ``core`` in a way that works whether the project is installed or run
+# directly with ``python -m src.app``.
+try:
+    # When tests or an installed package import ``modules.datasource``, ``core``
+    # is available as a top-level package.
+    from core.crypto import CryptoManager
+    from core.storage import get_connection
+except ImportError:  # pragma: no cover - fallback for running from source
+    # When executing directly from the source tree, ``modules`` is imported as
+    # ``src.modules`` and we need a relative import to reach ``src.core``.
+    from ...core.crypto import CryptoManager
+    from ...core.storage import get_connection
 
 
 class ConnectionProfile(BaseModel):
