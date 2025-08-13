@@ -14,7 +14,11 @@ def migration_1(conn: sqlite3.Connection) -> None:
         CREATE TABLE IF NOT EXISTS connections (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
-            conn_string TEXT NOT NULL
+            server TEXT NOT NULL,
+            database TEXT NOT NULL,
+            auth TEXT NOT NULL,
+            conn_timeout INTEGER NOT NULL DEFAULT 5,
+            query_timeout INTEGER NOT NULL DEFAULT 30
         )
         """
     )
