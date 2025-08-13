@@ -12,9 +12,13 @@ from PySide6.QtWidgets import (
     QSplitter,
     QTextEdit,
     QWidget,
+    QDialog,
 )
 
 from qt_material import apply_stylesheet
+
+from modules.datasource import ConnectionManager
+from .dialog_connection import ConnectionDialog
 
 
 class MainWindow(QMainWindow):
@@ -85,6 +89,9 @@ class MainWindow(QMainWindow):
         self.dark_theme_action = QAction("Тёмная тема", self, checkable=True)
         self.dark_theme_action.triggered.connect(self._toggle_theme)
 
+        self.connection_profiles_action = QAction("Профили подключений", self)
+        self.connection_profiles_action.triggered.connect(self._open_connection_dialog)
+
     def _create_menu(self) -> None:
         """Populate menu bar with actions."""
 
@@ -103,6 +110,23 @@ class MainWindow(QMainWindow):
         view_menu.addAction(self.run_action)
         view_menu.addSeparator()
         view_menu.addAction(self.dark_theme_action)
+
+        connections_menu = menu_bar.addMenu("Подключения")
+        connections_menu.addAction(self.connection_profiles_action)
+
+    # ------------------------------------------------------------------
+    # Connection profiles
+    # ------------------------------------------------------------------
+    def _open_connection_dialog(self) -> None:
+        if not hasattr(self, "connection_manager"):
+            self.connection_manager = ConnectionManager()
+        dialog = ConnectionDialog(self.connection_manager, parent=self)
+        if dialog.exec() == QDialog.Accepted:
+            profiles = self.connection_manager.list()
+            while self.nav_list.count() > 1:
+                self.nav_list.takeItem(1)
+            for profile in profiles:
+                self.nav_list.addItem(profile.name)
 
     # ------------------------------------------------------------------
     # Project management
