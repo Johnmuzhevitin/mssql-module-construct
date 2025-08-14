@@ -10,13 +10,15 @@ from PySide6.QtWidgets import (
     QMenuBar,
     QMessageBox,
     QSplitter,
-    QTextEdit,
     QWidget,
     QDialog,
+    QVBoxLayout,
 )
 
 from qt_material import apply_stylesheet
 
+from ..core.events import EventBus
+from ..core.registry import registry
 from ..modules.datasource import ConnectionManager
 from .dialog_connection import ConnectionDialog
 
@@ -24,14 +26,18 @@ from .dialog_connection import ConnectionDialog
 class MainWindow(QMainWindow):
     """Main application window with basic layout and theme switching."""
 
-    def __init__(self, config) -> None:
+    def __init__(self, config, event_bus: EventBus) -> None:
         super().__init__()
         self.config = config
+        self.event_bus = event_bus
         self.setWindowTitle(config.app_name)
 
         self.settings = QSettings("mssql-module-construct", "main_window")
 
+        self.active_module = None
+
         self._create_widgets()
+        self._populate_navigation()
         self._create_actions()
         self._create_menu()
         self._load_settings()
@@ -43,16 +49,19 @@ class MainWindow(QMainWindow):
         """Create main layout with splitters."""
 
         self.nav_list = QListWidget()
-        self.nav_list.addItem("Навигация")
+        self.nav_list.currentRowChanged.connect(self._on_nav_changed)
 
-        self.canvas = QLabel("Canvas")
-        self.canvas.setAlignment(Qt.AlignCenter)
+        self.canvas = QWidget()
+        self.canvas_layout = QVBoxLayout(self.canvas)
+        self.canvas_layout.addWidget(QLabel("Canvas"))
 
-        self.props_panel = QTextEdit()
-        self.props_panel.setPlainText("Свойства")
+        self.props_panel = QWidget()
+        self.props_layout = QVBoxLayout(self.props_panel)
+        self.props_layout.addWidget(QLabel("Свойства"))
 
-        self.preview = QTextEdit()
-        self.preview.setPlainText("Превью")
+        self.preview = QWidget()
+        self.preview_layout = QVBoxLayout(self.preview)
+        self.preview_layout.addWidget(QLabel("Превью"))
 
         self.h_splitter = QSplitter(Qt.Horizontal)
         self.h_splitter.addWidget(self.nav_list)
@@ -114,6 +123,64 @@ class MainWindow(QMainWindow):
         connections_menu = menu_bar.addMenu("Подключения")
         connections_menu.addAction(self.connection_profiles_action)
 
+    def _populate_navigation(self) -> None:
+        self.modules = registry.all()
+        for module in self.modules:
+            self.nav_list.addItem(module.title)
+
+    def _on_nav_changed(self, index: int) -> None:
+        if index < 0 or index >= len(getattr(self, "modules", [])):
+            return
+        module = self.modules[index]
+        self._activate_module(module)
+
+    def _activate_module(self, module) -> None:
+        if self.active_module is module:
+            return
+        if self.active_module is not None:
+            self.event_bus.emit("module:before_unmount", self.active_module)
+            try:
+                self.active_module.unmount()
+            finally:
+                self.event_bus.emit("module:unmounted", self.active_module)
+        self._set_canvas_widget(None)
+        props = None
+        preview = None
+        if module is not None:
+            self.event_bus.emit("module:before_mount", module)
+            module.mount(self.canvas, self.config, self.event_bus)
+            props = module.get_properties_widget(self)
+            preview = module.get_preview_widget(self)
+            self.event_bus.emit("module:mounted", module)
+        self._set_properties_widget(props or QLabel(""))
+        self._set_preview_widget(preview or QLabel(""))
+        self.active_module = module
+        self.event_bus.emit("module:changed", module)
+
+    def _set_canvas_widget(self, widget: QWidget | None) -> None:
+        while self.canvas_layout.count():
+            item = self.canvas_layout.takeAt(0)
+            if w := item.widget():
+                w.deleteLater()
+        if widget is not None:
+            self.canvas_layout.addWidget(widget)
+
+    def _set_properties_widget(self, widget: QWidget | None) -> None:
+        while self.props_layout.count():
+            item = self.props_layout.takeAt(0)
+            if w := item.widget():
+                w.deleteLater()
+        if widget is not None:
+            self.props_layout.addWidget(widget)
+
+    def _set_preview_widget(self, widget: QWidget | None) -> None:
+        while self.preview_layout.count():
+            item = self.preview_layout.takeAt(0)
+            if w := item.widget():
+                w.deleteLater()
+        if widget is not None:
+            self.preview_layout.addWidget(widget)
+
     # ------------------------------------------------------------------
     # Connection profiles
     # ------------------------------------------------------------------
@@ -121,12 +188,7 @@ class MainWindow(QMainWindow):
         if not hasattr(self, "connection_manager"):
             self.connection_manager = ConnectionManager()
         dialog = ConnectionDialog(self.connection_manager, parent=self)
-        if dialog.exec() == QDialog.Accepted:
-            profiles = self.connection_manager.list()
-            while self.nav_list.count() > 1:
-                self.nav_list.takeItem(1)
-            for profile in profiles:
-                self.nav_list.addItem(profile.name)
+        dialog.exec()
 
     # ------------------------------------------------------------------
     # Project management
@@ -144,15 +206,10 @@ class MainWindow(QMainWindow):
             return
 
         self.nav_list.clear()
-        self.nav_list.addItem("Навигация")
-
-        self.canvas.setText("Canvas")
-
-        self.props_panel.clear()
-        self.props_panel.setPlainText("Свойства")
-
-        self.preview.clear()
-        self.preview.setPlainText("Превью")
+        self._populate_navigation()
+        self._set_canvas_widget(QLabel("Canvas"))
+        self._set_properties_widget(QLabel("Свойства"))
+        self._set_preview_widget(QLabel("Превью"))
 
     # ------------------------------------------------------------------
     # Theme management
