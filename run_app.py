@@ -40,7 +40,7 @@ def main() -> None:
     app.setOrganizationName("mssql-module-construct")
     app.setApplicationName(config.app_name)
 
-    window = MainWindow(config)
+    window = MainWindow(config, event_bus)
     window.resize(800, 600)
     window.show()
 
